@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TRA Receipt Pro</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        body { background: #333; margin: 0; padding: 10px; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; }
+        .form-container { 
+            background: #fff; padding: 15px; width: 100%; max-width: 350px; 
+            margin-bottom: 20px; border-radius: 10px; box-sizing: border-box;
+        }
+        label { font-size: 12px; font-weight: bold; color: #555; }
+        input { width: 100%; padding: 10px; margin: 5px 0 12px 0; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+        .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        button { padding: 12px; font-weight: bold; border: none; border-radius: 5px; cursor: pointer; color: white; }
+        .btn-update { background: #3498db; grid-column: span 2; margin-bottom: 5px; }
+        .btn-print { background: #27ae60; }
+        .btn-save { background: #e67e22; }
+
+        /* Receipt Design - Matches your original photo */
+        #receipt-area { 
+            width: 300px; background: white; padding: 20px; color: #000;
+            font-family: 'Courier New', Courier, monospace; font-size: 13px; line-height: 1.2;
+        }
+        .center { text-align: center; }
+        .bold { font-weight: bold; }
+        .dashed-line { border-bottom: 1px dashed #000; margin: 10px 0; }
+        .item-row { display: flex; justify-content: space-between; margin: 4px 0; }
+        #qrcode { display: flex; justify-content: center; margin: 15px 0; min-height: 130px; }
+
+        @media print {
+            .form-container { display: none !important; }
+            body { background: white; padding: 0; }
+            #receipt-area { box-shadow: none; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="form-container">
+    <h3 style="margin:0 0 10px 0">Receipt Settings</h3>
+    <label>Customer Name</label>
+    <input type="text" id="in-name" value="GERALD HALL">
+    <label>Item</label>
+    <input type="text" id="in-item" value="MAIZE THRASHER">
+    <label>Total Amount (TZS)</label>
+    <input type="number" id="in-price" value="1550000">
+    <label>Verification Code</label>
+    <input type="text" id="in-code" value="479B0636765">
+    
+    <div class="btn-group">
+        <button class="btn-update" onclick="updateReceipt()">REFRESH RECEIPT</button>
+        <button class="btn-print" onclick="window.print()">PRINT</button>
+        <button class="btn-save" onclick="saveAsImage()">SAVE IMAGE</button>
+    </div>
+</div>
+
+<div id="receipt-area">
+    <div class="center bold">*** START OF LEGAL RECEIPT ***</div>
+    <div class="center" style="margin: 8px 0;">
+        METRO AGRO MACHINERY & SPARES LTD<br>
+        P O BOX 79790 MOROGORO<br>
+        TEL +255 783 290 717<br>
+        TANZANIA
+    </div>
+    <div class="center" style="font-size: 11px;">
+        TIN: 101840182 | VRN: 10016208N<br>
+        S/N: 03TZ843006014
+    </div>
+    <div class="dashed-line"></div>
+    <div style="font-size: 11px;">
+        CUSTOMER: <span id="disp-name"></span><br>
+        ID TYPE: BUYER'S TIN | ID: 321459636
+    </div>
+    <div class="dashed-line"></div>
+    <div class="item-row">
+        <span id="disp-date"></span> <span id="disp-time"></span>
+    </div>
+    <div class="dashed-line"></div>
+    <div class="item-row bold">
+        <span id="disp-item"></span>
+        <span><span id="disp-total-row"></span> E</span>
+    </div>
+    <div class="item-row">
+        <span>TOTAL EXCL. TAX</span> <span id="disp-excl"></span>
+    </div>
+    <div class="center bold" style="font-size: 24px; margin: 15px 0;" id="disp-total-big"></div>
+    <div class="dashed-line"></div>
+    <div class="center">
+        VERIFICATION CODE<br>
+        <span class="bold" id="disp-code"></span>
+    </div>
+    <div id="qrcode"></div>
+    <div class="center bold">*** END OF LEGAL RECEIPT ***</div>
+    <div class="center" style="font-size: 10px; margin-top:10px;">
+        Changamoto kwenye risiti piga<br>bure TRA 0800750254/0800754255
+    </div>
+</div>
+
+<script>
+    // Initialize QR Code once
+    var qrcode = new QRCode(document.getElementById("qrcode"), { width: 130, height: 130 });
+
+    function updateReceipt() {
+        var total = parseFloat(document.getElementById('in-price').value) || 0;
+        var code = document.getElementById('in-code').value || "000";
+        var formatted = total.toLocaleString('en-US', {minimumFractionDigits: 2});
+
+        document.getElementById('disp-name').innerText = document.getElementById('in-name').value.toUpperCase();
+        document.getElementById('disp-item').innerText = document.getElementById('in-item').value.toUpperCase();
+        document.getElementById('disp-total-row').innerText = formatted;
+        document.getElementById('disp-excl').innerText = (total / 1.18).toLocaleString('en-US', {minimumFractionDigits: 2});
+        document.getElementById('disp-total-big').innerText = formatted;
+        document.getElementById('disp-code').innerText = code.toUpperCase();
+
+        var now = new Date();
+        document.getElementById('disp-date').innerText = now.toLocaleDateString('en-GB').replace(/\//g, '-');
+        document.getElementById('disp-time').innerText = now.toLocaleTimeString('en-GB');
+
+        qrcode.clear();
+        qrcode.makeCode("https://verify.tra.go.tz/" + code);
+    }
+
+    function saveAsImage() {
+        // Ensure everything is rendered before taking picture
+        updateReceipt();
+        setTimeout(() => {
+            html2canvas(document.querySelector("#receipt-area"), {
+                scale: 2, // Better quality
+                backgroundColor: "#ffffff"
+            }).then(canvas => {
+                let link = document.createElement('a');
+                link.download = 'Receipt-' + document.getElementById('in-name').value + '.png';
+                link.href = canvas.toDataURL("image/png");
+                link.click();
+            });
+        }, 100);
+    }
+
+    // Run on startup
+    window.onload = updateReceipt;
+</script>
+</body>
+</html>
