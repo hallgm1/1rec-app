@@ -9,21 +9,25 @@
     <style>
         body { background: #333; margin: 0; padding: 10px; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; }
         .form-container { 
-            background: #fff; padding: 15px; width: 100%; max-width: 350px; 
+            background: #fff; padding: 15px; width: 100%; max-width: 400px; 
             margin-bottom: 20px; border-radius: 10px; box-sizing: border-box;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
         }
-        label { font-size: 12px; font-weight: bold; color: #555; }
-        input { width: 100%; padding: 10px; margin: 5px 0 12px 0; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
-        .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        h3 { margin: 0 0 15px 0; color: #2c3e50; border-bottom: 2px solid #eee; padding-bottom: 5px; }
+        .input-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        label { font-size: 11px; font-weight: bold; color: #555; text-transform: uppercase; display: block; margin-top: 8px; }
+        input { width: 100%; padding: 8px; margin: 4px 0; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; }
+        
+        .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 15px; }
         button { padding: 12px; font-weight: bold; border: none; border-radius: 5px; cursor: pointer; color: white; }
-        .btn-update { background: #3498db; grid-column: span 2; margin-bottom: 5px; }
+        .btn-update { background: #3498db; grid-column: span 2; }
         .btn-print { background: #27ae60; }
         .btn-save { background: #e67e22; }
 
-        /* Receipt Design - Matches your original photo */
+        /* Receipt Design */
         #receipt-area { 
-            width: 300px; background: white; padding: 20px; color: #000;
-            font-family: 'Courier New', Courier, monospace; font-size: 13px; line-height: 1.2;
+            width: 320px; background: white; padding: 25px; color: #000;
+            font-family: 'Courier New', Courier, monospace; font-size: 13px; line-height: 1.3;
         }
         .center { text-align: center; }
         .bold { font-weight: bold; }
@@ -34,25 +38,50 @@
         @media print {
             .form-container { display: none !important; }
             body { background: white; padding: 0; }
-            #receipt-area { box-shadow: none; }
         }
     </style>
 </head>
 <body>
 
 <div class="form-container">
-    <h3 style="margin:0 0 10px 0">Receipt Settings</h3>
+    <h3>Receipt Settings</h3>
+    
+    <label>Business Name</label>
+    <input type="text" id="in-biz-name" value="METRO AGRO MACHINERY & SPARES LTD">
+    
+    <label>Business Address</label>
+    <input type="text" id="in-biz-addr" value="P O BOX 79790 MOROGORO">
+    
+    <div class="input-row">
+        <div>
+            <label>Business TIN</label>
+            <input type="text" id="in-biz-tin" value="101840182">
+        </div>
+        <div>
+            <label>Business VRN</label>
+            <input type="text" id="in-biz-vrn" value="10016208N">
+        </div>
+    </div>
+
     <label>Customer Name</label>
-    <input type="text" id="in-name" value="GERALD HALL">
-    <label>Item</label>
-    <input type="text" id="in-item" value="MAIZE THRASHER">
-    <label>Total Amount (TZS)</label>
-    <input type="number" id="in-price" value="1550000">
+    <input type="text" id="in-cust-name" value="WILLIAM MATHAYO GENDO">
+
+    <div class="input-row">
+        <div>
+            <label>Item Name</label>
+            <input type="text" id="in-item" value="BRAKE BOOSTER">
+        </div>
+        <div>
+            <label>Price (TZS)</label>
+            <input type="number" id="in-price" value="300000">
+        </div>
+    </div>
+
     <label>Verification Code</label>
     <input type="text" id="in-code" value="479B0636765">
     
     <div class="btn-group">
-        <button class="btn-update" onclick="updateReceipt()">REFRESH RECEIPT</button>
+        <button class="btn-update" onclick="updateReceipt()">REFRESH PREVIEW</button>
         <button class="btn-print" onclick="window.print()">PRINT</button>
         <button class="btn-save" onclick="saveAsImage()">SAVE IMAGE</button>
     </div>
@@ -60,60 +89,85 @@
 
 <div id="receipt-area">
     <div class="center bold">*** START OF LEGAL RECEIPT ***</div>
-    <div class="center" style="margin: 8px 0;">
-        METRO AGRO MACHINERY & SPARES LTD<br>
-        P O BOX 79790 MOROGORO<br>
+    
+    <div class="center" style="margin: 10px 0;">
+        <span id="disp-biz-name" class="bold"></span><br>
+        <span id="disp-biz-addr"></span><br>
         TEL +255 783 290 717<br>
         TANZANIA
     </div>
-    <div class="center" style="font-size: 11px;">
-        TIN: 101840182 | VRN: 10016208N<br>
+
+    <div class="center">
+        TIN: <span id="disp-biz-tin"></span> | VRN: <span id="disp-biz-vrn"></span><br>
         S/N: 03TZ843006014
     </div>
+
     <div class="dashed-line"></div>
-    <div style="font-size: 11px;">
-        CUSTOMER: <span id="disp-name"></span><br>
-        ID TYPE: BUYER'S TIN | ID: 321459636
+
+    <div>
+        CUSTOMER: <span id="disp-cust-name"></span><br>
+        ID TYPE: BUYER'S TIN | <span id="disp-cust-id">321459636</span>
     </div>
+
     <div class="dashed-line"></div>
+
     <div class="item-row">
-        <span id="disp-date"></span> <span id="disp-time"></span>
+        <span id="disp-date"></span>
+        <span id="disp-time"></span>
     </div>
+
     <div class="dashed-line"></div>
+
     <div class="item-row bold">
         <span id="disp-item"></span>
         <span><span id="disp-total-row"></span> E</span>
     </div>
+
     <div class="item-row">
-        <span>TOTAL EXCL. TAX</span> <span id="disp-excl"></span>
+        <span>TOTAL EXCL. TAX</span>
+        <span id="disp-excl"></span>
     </div>
-    <div class="center bold" style="font-size: 24px; margin: 15px 0;" id="disp-total-big"></div>
+    
+    <div class="center bold" style="font-size: 28px; margin: 15px 0;" id="disp-total-big"></div>
+
     <div class="dashed-line"></div>
+
     <div class="center">
         VERIFICATION CODE<br>
         <span class="bold" id="disp-code"></span>
     </div>
+
     <div id="qrcode"></div>
+
     <div class="center bold">*** END OF LEGAL RECEIPT ***</div>
+    
     <div class="center" style="font-size: 10px; margin-top:10px;">
-        Changamoto kwenye risiti piga<br>bure TRA 0800750254/0800754255
+        Changamoto kwenye risiti piga<br>bure TRA 0800750254 /0800754255
     </div>
 </div>
 
 <script>
-    // Initialize QR Code once
-    var qrcode = new QRCode(document.getElementById("qrcode"), { width: 130, height: 130 });
+    var qrcode = new QRCode(document.getElementById("qrcode"), { width: 135, height: 135 });
 
     function updateReceipt() {
-        var total = parseFloat(document.getElementById('in-price').value) || 0;
-        var code = document.getElementById('in-code').value || "000";
-        var formatted = total.toLocaleString('en-US', {minimumFractionDigits: 2});
+        // Business Info
+        document.getElementById('disp-biz-name').innerText = document.getElementById('in-biz-name').value.toUpperCase();
+        document.getElementById('disp-biz-addr').innerText = document.getElementById('in-biz-addr').value.toUpperCase();
+        document.getElementById('disp-biz-tin').innerText = document.getElementById('in-biz-tin').value;
+        document.getElementById('disp-biz-vrn').innerText = document.getElementById('in-biz-vrn').value;
 
-        document.getElementById('disp-name').innerText = document.getElementById('in-name').value.toUpperCase();
+        // Customer & Item Info
+        document.getElementById('disp-cust-name').innerText = document.getElementById('in-cust-name').value.toUpperCase();
         document.getElementById('disp-item').innerText = document.getElementById('in-item').value.toUpperCase();
+
+        var total = parseFloat(document.getElementById('in-price').value) || 0;
+        var formatted = total.toLocaleString('en-US', {minimumFractionDigits: 2});
         document.getElementById('disp-total-row').innerText = formatted;
-        document.getElementById('disp-excl').innerText = (total / 1.18).toLocaleString('en-US', {minimumFractionDigits: 2});
         document.getElementById('disp-total-big').innerText = formatted;
+        document.getElementById('disp-excl').innerText = (total / 1.18).toLocaleString('en-US', {minimumFractionDigits: 2});
+
+        // Verification Info
+        var code = document.getElementById('in-code').value;
         document.getElementById('disp-code').innerText = code.toUpperCase();
 
         var now = new Date();
@@ -125,23 +179,19 @@
     }
 
     function saveAsImage() {
-        // Ensure everything is rendered before taking picture
         updateReceipt();
         setTimeout(() => {
-            html2canvas(document.querySelector("#receipt-area"), {
-                scale: 2, // Better quality
-                backgroundColor: "#ffffff"
-            }).then(canvas => {
+            html2canvas(document.querySelector("#receipt-area"), { scale: 3 }).then(canvas => {
                 let link = document.createElement('a');
-                link.download = 'Receipt-' + document.getElementById('in-name').value + '.png';
-                link.href = canvas.toDataURL("image/png");
+                link.download = 'Receipt-' + document.getElementById('in-cust-name').value + '.png';
+                link.href = canvas.toDataURL();
                 link.click();
             });
-        }, 100);
+        }, 200);
     }
 
-    // Run on startup
     window.onload = updateReceipt;
 </script>
+
 </body>
 </html>
