@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TRA Receipt Pro</title>
+    <title>TRA Receipt Pro - Full Control</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
@@ -17,11 +17,14 @@
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         label { font-size: 11px; font-weight: bold; color: #7f8c8d; text-transform: uppercase; margin-top: 10px; display: block; }
         input { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #dcdde1; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
+        
         .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px; }
         button { padding: 14px; font-weight: bold; border: none; border-radius: 6px; cursor: pointer; color: white; transition: 0.2s; }
         .btn-update { background: #3498db; grid-column: span 2; }
         .btn-print { background: #27ae60; }
         .btn-save { background: #e67e22; }
+        .btn-reset { background: #95a5a6; grid-column: span 2; margin-top: 5px; font-size: 11px; padding: 8px; }
+        
         #receipt-area { 
             width: 320px; background: white; padding: 25px; color: #000;
             font-family: 'Courier New', Courier, monospace; font-size: 13px; line-height: 1.3;
@@ -31,6 +34,7 @@
         .dashed-line { border-bottom: 1px dashed #000; margin: 12px 0; }
         .item-row { display: flex; justify-content: space-between; margin: 5px 0; }
         #qrcode { display: flex; justify-content: center; margin: 15px 0; min-height: 135px; }
+
         @media print { .form-container { display: none !important; } body { background: white; padding: 0; } }
     </style>
 </head>
@@ -39,12 +43,15 @@
 <div class="form-container">
     <h3>Header & Business Info</h3>
     <label>Business Name</label>
-    <input type="text" id="in-biz-name" value="METRO AGRO MACHINERY & SPARES LTD">
+    <input type="text" id="in-biz-name" oninput="saveData()" value="METRO AGRO MACHINERY & SPARES LTD">
     <label>Address</label>
-    <input type="text" id="in-biz-addr" value="P O BOX 79790 MOROGORO">
+    <input type="text" id="in-biz-addr" oninput="saveData()" value="P O BOX 79790 MOROGORO">
+    <label>Phone Number</label>
+    <input type="text" id="in-biz-tel" oninput="saveData()" value="+255 783 290 717">
+    
     <div class="grid">
-        <div><label>TIN</label><input type="text" id="in-biz-tin" value="101840182"></div>
-        <div><label>VRN</label><input type="text" id="in-biz-vrn" value="10016208N"></div>
+        <div><label>TIN</label><input type="text" id="in-biz-tin" oninput="saveData()" value="101840182"></div>
+        <div><label>VRN</label><input type="text" id="in-biz-vrn" oninput="saveData()" value="10016208N"></div>
     </div>
 
     <h3>Customer & Sales</h3>
@@ -58,14 +65,15 @@
     </div>
     
     <div class="grid">
-        <div><label>S/N</label><input type="text" id="in-sn" value="03TZ843006014"></div>
-        <div><label>Receipt No.</label><input type="number" id="in-rcpt-no" value="36765"></div>
+        <div><label>S/N</label><input type="text" id="in-sn" oninput="saveData()" value="03TZ843006014"></div>
+        <div><label>Receipt No.</label><input type="number" id="in-rcpt-no" oninput="saveData()" value="36765"></div>
     </div>
     
     <div class="btn-group">
         <button class="btn-update" onclick="updateReceipt()">REFRESH PREVIEW</button>
         <button class="btn-print" onclick="handlePrint()">PRINT RECEIPT</button>
         <button class="btn-save" onclick="handleSave()">SAVE AS IMAGE</button>
+        <button class="btn-reset" onclick="resetCounter()">RESET COUNTER TO 1</button>
     </div>
 </div>
 
@@ -74,7 +82,7 @@
     <div class="center" style="margin: 10px 0;">
         <span id="disp-biz-name" class="bold"></span><br>
         <span id="disp-biz-addr"></span><br>
-        TEL +255 783 290 717<br>TANZANIA
+        TEL <span id="disp-biz-tel"></span><br>TANZANIA
     </div>
     <div class="center">
         TIN: <span id="disp-biz-tin"></span> | VRN: <span id="disp-biz-vrn"></span><br>
@@ -113,33 +121,73 @@
 <script>
     var qrcode = new QRCode(document.getElementById("qrcode"), { width: 135, height: 135 });
 
+    function saveData() {
+        const data = {
+            bizName: document.getElementById('in-biz-name').value,
+            bizAddr: document.getElementById('in-biz-addr').value,
+            bizTel: document.getElementById('in-biz-tel').value,
+            tin: document.getElementById('in-biz-tin').value,
+            vrn: document.getElementById('in-biz-vrn').value,
+            sn: document.getElementById('in-sn').value,
+            rcptNo: document.getElementById('in-rcpt-no').value
+        };
+        localStorage.setItem('tra_receipt_data', JSON.stringify(data));
+    }
+
+    function loadData() {
+        const savedData = localStorage.getItem('tra_receipt_data');
+        if (savedData) {
+            const data = JSON.parse(savedData);
+            document.getElementById('in-biz-name').value = data.bizName || "";
+            document.getElementById('in-biz-addr').value = data.bizAddr || "";
+            document.getElementById('in-biz-tel').value = data.bizTel || "";
+            document.getElementById('in-biz-tin').value = data.tin || "";
+            document.getElementById('in-biz-vrn').value = data.vrn || "";
+            document.getElementById('in-sn').value = data.sn || "";
+            document.getElementById('in-rcpt-no').value = data.rcptNo || "1";
+        }
+    }
+
     function updateReceipt() {
         document.getElementById('disp-biz-name').innerText = document.getElementById('in-biz-name').value.toUpperCase();
         document.getElementById('disp-biz-addr').innerText = document.getElementById('in-biz-addr').value.toUpperCase();
+        document.getElementById('disp-biz-tel').innerText = document.getElementById('in-biz-tel').value;
         document.getElementById('disp-biz-tin').innerText = document.getElementById('in-biz-tin').value;
         document.getElementById('disp-biz-vrn').innerText = document.getElementById('in-biz-vrn').value;
         document.getElementById('disp-sn').innerText = document.getElementById('in-sn').value;
-        document.getElementById('disp-rcpt-no').innerText = document.getElementById('in-rcpt-no').value;
+        
+        var rcptNum = document.getElementById('in-rcpt-no').value;
+        document.getElementById('disp-rcpt-no').innerText = rcptNum;
         document.getElementById('disp-cust-name').innerText = document.getElementById('in-cust-name').value.toUpperCase();
         document.getElementById('disp-cust-id').innerText = document.getElementById('in-cust-id').value;
+
         var total = parseFloat(document.getElementById('in-price').value) || 0;
         var formatted = total.toLocaleString('en-US', {minimumFractionDigits: 2});
         document.getElementById('disp-item').innerText = document.getElementById('in-item').value.toUpperCase();
         document.getElementById('disp-total-row').innerText = formatted;
         document.getElementById('disp-total-big').innerText = formatted;
         document.getElementById('disp-excl').innerText = (total / 1.18).toLocaleString('en-US', {minimumFractionDigits: 2});
+
         var now = new Date();
         document.getElementById('disp-date').innerText = now.toLocaleDateString('en-GB').replace(/\//g, '-');
         document.getElementById('disp-time').innerText = now.toLocaleTimeString('en-GB');
-        var rcptNum = document.getElementById('in-rcpt-no').value;
-        document.getElementById('disp-code').innerText = "479B0" + rcptNum;
+        
+        var vCode = "479B0" + rcptNum;
+        document.getElementById('disp-code').innerText = vCode;
         qrcode.clear();
-        qrcode.makeCode("https://verify.tra.go.tz/479B0" + rcptNum);
+        qrcode.makeCode("https://verify.tra.go.tz/" + vCode);
+    }
+
+    function resetCounter() {
+        document.getElementById('in-rcpt-no').value = 1;
+        saveData();
+        updateReceipt();
     }
 
     function incrementCounter() {
         var current = parseInt(document.getElementById('in-rcpt-no').value);
         document.getElementById('in-rcpt-no').value = current + 1;
+        saveData();
         updateReceipt();
     }
 
@@ -157,7 +205,11 @@
             });
         }, 200);
     }
-    window.onload = updateReceipt;
+
+    window.onload = function() {
+        loadData();
+        updateReceipt();
+    };
 </script>
 </body>
 </html>
