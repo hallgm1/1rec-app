@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TRA Receipt Pro - Full Control</title>
+    <title>TRA Receipt Pro - Full Layout</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
@@ -13,7 +13,8 @@
             margin-bottom: 20px; border-radius: 12px; box-sizing: border-box;
             box-shadow: 0 10px 25px rgba(0,0,0,0.5);
         }
-        h3 { margin: 0 0 15px 0; font-size: 18px; color: #34495e; border-bottom: 2px solid #ecf0f1; padding-bottom: 8px; }
+        h3 { margin: 15px 0 10px 0; font-size: 16px; color: #34495e; border-bottom: 2px solid #ecf0f1; padding-bottom: 5px; }
+        h3:first-child { margin-top: 0; }
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         label { font-size: 11px; font-weight: bold; color: #7f8c8d; text-transform: uppercase; margin-top: 10px; display: block; }
         input { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #dcdde1; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
@@ -41,33 +42,39 @@
 <body>
 
 <div class="form-container">
-    <h3>Header & Business Info</h3>
+    <h3>Business Details</h3>
     <label>Business Name</label>
     <input type="text" id="in-biz-name" oninput="saveData()" value="METRO AGRO MACHINERY & SPARES LTD">
-    <label>Address</label>
+    <label>P.O. BOX / City</label>
     <input type="text" id="in-biz-addr" oninput="saveData()" value="P O BOX 79790 MOROGORO">
-    <label>Phone Number</label>
-    <input type="text" id="in-biz-tel" oninput="saveData()" value="+255 783 290 717">
+    <div class="grid">
+        <div><label>Phone</label><input type="text" id="in-biz-tel" oninput="saveData()" value="+255 783 290 717"></div>
+        <div><label>Street</label><input type="text" id="in-biz-street" oninput="saveData()" value="MSAMVU"></div>
+    </div>
     
     <div class="grid">
         <div><label>TIN</label><input type="text" id="in-biz-tin" oninput="saveData()" value="101840182"></div>
         <div><label>VRN</label><input type="text" id="in-biz-vrn" oninput="saveData()" value="10016208N"></div>
     </div>
 
-    <h3>Customer & Sales</h3>
+    <h3>Device & Office</h3>
+    <div class="grid">
+        <div><label>S/N</label><input type="text" id="in-sn" oninput="saveData()" value="03TZ843006014"></div>
+        <div><label>Tax Office</label><input type="text" id="in-tax-office" oninput="saveData()" value="MOROGORO"></div>
+    </div>
+
+    <h3>Transaction</h3>
     <label>Customer Name</label>
     <input type="text" id="in-cust-name" value="WILLIAM MATHAYO GENDO">
     <label>Customer ID Number</label>
     <input type="text" id="in-cust-id" value="321459636">
     <div class="grid">
         <div><label>Item Name</label><input type="text" id="in-item" value="BRAKE BOOSTER"></div>
-        <div><label>Total TZS</label><input type="number" id="in-price" value="300000"></div>
+        <div><label>Total Price</label><input type="number" id="in-price" value="300000"></div>
     </div>
     
-    <div class="grid">
-        <div><label>S/N</label><input type="text" id="in-sn" oninput="saveData()" value="03TZ843006014"></div>
-        <div><label>Receipt No.</label><input type="number" id="in-rcpt-no" oninput="saveData()" value="36765"></div>
-    </div>
+    <label>Receipt No.</label>
+    <input type="number" id="in-rcpt-no" oninput="saveData()" value="36765">
     
     <div class="btn-group">
         <button class="btn-update" onclick="updateReceipt()">REFRESH PREVIEW</button>
@@ -82,11 +89,13 @@
     <div class="center" style="margin: 10px 0;">
         <span id="disp-biz-name" class="bold"></span><br>
         <span id="disp-biz-addr"></span><br>
-        TEL <span id="disp-biz-tel"></span><br>TANZANIA
+        TEL <span id="disp-biz-tel"></span><br>
+        <span id="disp-biz-street"></span>, TANZANIA
     </div>
     <div class="center">
         TIN: <span id="disp-biz-tin"></span> | VRN: <span id="disp-biz-vrn"></span><br>
-        S/N: <span id="disp-sn"></span>
+        S/N: <span id="disp-sn"></span><br>
+        TAX OFFICE: <span id="disp-tax-office"></span>
     </div>
     <div class="dashed-line"></div>
     <div>
@@ -108,6 +117,9 @@
     <div class="item-row">
         <span>TOTAL EXCL. TAX</span> <span id="disp-excl"></span>
     </div>
+    <div class="item-row">
+        <span>TOTAL VAT (18%)</span> <span id="disp-vat"></span>
+    </div>
     <div class="center bold" style="font-size: 28px; margin: 15px 0;" id="disp-total-big"></div>
     <div class="dashed-line"></div>
     <div class="center">VERIFICATION CODE<br><span class="bold" id="disp-code"></span></div>
@@ -126,24 +138,28 @@
             bizName: document.getElementById('in-biz-name').value,
             bizAddr: document.getElementById('in-biz-addr').value,
             bizTel: document.getElementById('in-biz-tel').value,
+            bizStreet: document.getElementById('in-biz-street').value,
             tin: document.getElementById('in-biz-tin').value,
             vrn: document.getElementById('in-biz-vrn').value,
             sn: document.getElementById('in-sn').value,
+            taxOffice: document.getElementById('in-tax-office').value,
             rcptNo: document.getElementById('in-rcpt-no').value
         };
-        localStorage.setItem('tra_receipt_data', JSON.stringify(data));
+        localStorage.setItem('tra_receipt_data_v2', JSON.stringify(data));
     }
 
     function loadData() {
-        const savedData = localStorage.getItem('tra_receipt_data');
+        const savedData = localStorage.getItem('tra_receipt_data_v2');
         if (savedData) {
             const data = JSON.parse(savedData);
             document.getElementById('in-biz-name').value = data.bizName || "";
             document.getElementById('in-biz-addr').value = data.bizAddr || "";
             document.getElementById('in-biz-tel').value = data.bizTel || "";
+            document.getElementById('in-biz-street').value = data.bizStreet || "";
             document.getElementById('in-biz-tin').value = data.tin || "";
             document.getElementById('in-biz-vrn').value = data.vrn || "";
             document.getElementById('in-sn').value = data.sn || "";
+            document.getElementById('in-tax-office').value = data.taxOffice || "";
             document.getElementById('in-rcpt-no').value = data.rcptNo || "1";
         }
     }
@@ -152,9 +168,11 @@
         document.getElementById('disp-biz-name').innerText = document.getElementById('in-biz-name').value.toUpperCase();
         document.getElementById('disp-biz-addr').innerText = document.getElementById('in-biz-addr').value.toUpperCase();
         document.getElementById('disp-biz-tel').innerText = document.getElementById('in-biz-tel').value;
+        document.getElementById('disp-biz-street').innerText = document.getElementById('in-biz-street').value.toUpperCase();
         document.getElementById('disp-biz-tin').innerText = document.getElementById('in-biz-tin').value;
         document.getElementById('disp-biz-vrn').innerText = document.getElementById('in-biz-vrn').value;
         document.getElementById('disp-sn').innerText = document.getElementById('in-sn').value;
+        document.getElementById('disp-tax-office').innerText = document.getElementById('in-tax-office').value.toUpperCase();
         
         var rcptNum = document.getElementById('in-rcpt-no').value;
         document.getElementById('disp-rcpt-no').innerText = rcptNum;
@@ -162,11 +180,14 @@
         document.getElementById('disp-cust-id').innerText = document.getElementById('in-cust-id').value;
 
         var total = parseFloat(document.getElementById('in-price').value) || 0;
-        var formatted = total.toLocaleString('en-US', {minimumFractionDigits: 2});
+        var excl = Math.round(total / 1.18);
+        var vat = Math.round(total - excl);
+
         document.getElementById('disp-item').innerText = document.getElementById('in-item').value.toUpperCase();
-        document.getElementById('disp-total-row').innerText = formatted;
-        document.getElementById('disp-total-big').innerText = formatted;
-        document.getElementById('disp-excl').innerText = (total / 1.18).toLocaleString('en-US', {minimumFractionDigits: 2});
+        document.getElementById('disp-total-row').innerText = total.toLocaleString('en-US');
+        document.getElementById('disp-excl').innerText = excl.toLocaleString('en-US');
+        document.getElementById('disp-vat').innerText = vat.toLocaleString('en-US');
+        document.getElementById('disp-total-big').innerText = total.toLocaleString('en-US');
 
         var now = new Date();
         document.getElementById('disp-date').innerText = now.toLocaleDateString('en-GB').replace(/\//g, '-');
