@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TRA POS 58mm - Professional Format</title>
+    <title>TRA POS 58mm - Local Archive</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
@@ -25,13 +25,13 @@
         .btn-save { background: #e67e22; }
         .btn-reset { background: #95a5a6; grid-column: span 2; margin-top: 5px; padding: 6px; font-size: 10px; }
 
-        /* 58mm POS RECEIPT STYLING */
+        /* 58mm POS RECEIPT STYLING - MATCHES PHYSICAL RECEIPT PHOTO */
         #receipt-area { 
             width: 219px; 
             background: white; padding: 25px 12px; color: #000;
             font-family: 'Courier New', Courier, monospace; 
             font-size: 11px; line-height: 1.4; word-wrap: break-word;
-            min-height: 580px; 
+            min-height: 580px; /* Ensures professional long look */
             display: flex; flex-direction: column;
         }
         .center { text-align: center; }
@@ -56,7 +56,7 @@
     <input type="text" id="in-biz-name" oninput="saveData()" placeholder="METRO AGRO MACHINERY & SPARES LTD">
     <input type="text" id="in-biz-addr" oninput="saveData()" placeholder="P O BOX 79790 MOROGORO">
     <div class="grid">
-        <input type="text" id="in-biz-tel" oninput="saveData()" placeholder="TEL (e.g. +255...)">
+        <input type="text" id="in-biz-tel" oninput="saveData()" placeholder="TEL">
         <input type="text" id="in-biz-street" oninput="saveData()" placeholder="STREET">
     </div>
     <div class="grid">
@@ -76,19 +76,18 @@
             <option value="ID NUMBER">ID NUMBER</option>
             <option value="PASSPORT">PASSPORT</option>
         </select>
-        <input type="text" id="in-cust-id" placeholder="ID/TIN VALUE">
+        <input type="text" id="in-cust-id" placeholder="ID VALUE">
     </div>
     <div class="grid">
-        <input type="text" id="in-item" placeholder="ITEM NAME">
-        <input type="number" id="in-price" placeholder="TOTAL PRICE (TZS)">
+        <input type="text" id="in-item" placeholder="ITEM">
+        <input type="number" id="in-price" placeholder="PRICE (TZS)">
     </div>
-    <input type="number" id="in-rcpt-no" oninput="saveData()" placeholder="RECEIPT NO (e.g. 36765)">
-    <input type="text" id="in-script-url" oninput="saveData()" placeholder="GOOGLE CLOUD SCRIPT URL">
+    <input type="number" id="in-rcpt-no" oninput="saveData()" placeholder="RECEIPT NO">
     
     <div class="btn-group">
         <button class="btn-update" onclick="updateReceipt()">PREVIEW</button>
         <button class="btn-print" onclick="handlePrint()">PRINT</button>
-        <button id="btn-cloud" class="btn-save" onclick="saveToCloud()">CLOUD SAVE</button>
+        <button class="btn-save" onclick="saveToArchive()">SAVE TO FOLDER</button>
         <button class="btn-reset" onclick="resetCounter()">RESET NO.</button>
     </div>
 </div>
@@ -156,19 +155,20 @@
 
 <script>
     var qrcode = new QRCode(document.getElementById("qrcode"), { width: 115, height: 115 });
+    let directoryHandle = null;
 
     function saveData() {
-        const fields = ['biz-name', 'biz-addr', 'biz-tel', 'biz-street', 'biz-tin', 'biz-vrn', 'sn', 'tax-office', 'rcpt-no', 'script-url'];
+        const fields = ['biz-name', 'biz-addr', 'biz-tel', 'biz-street', 'biz-tin', 'biz-vrn', 'sn', 'tax-office', 'rcpt-no'];
         const data = {};
         fields.forEach(f => {
             const el = document.getElementById('in-' + f);
             if(el) data[f] = el.value;
         });
-        localStorage.setItem('tra_pos_master_v5', JSON.stringify(data));
+        localStorage.setItem('tra_pos_local_v1', JSON.stringify(data));
     }
 
     function loadData() {
-        const saved = JSON.parse(localStorage.getItem('tra_pos_master_v5') || "{}");
+        const saved = JSON.parse(localStorage.getItem('tra_pos_local_v1') || "{}");
         for (let key in saved) { if(document.getElementById('in-' + key)) document.getElementById('in-' + key).value = saved[key]; }
     }
 
@@ -212,20 +212,22 @@
         qrcode.makeCode("https://verify.tra.go.tz/" + vCode);
     }
 
-    async function saveToCloud() {
+    async function saveToArchive() {
         updateReceipt();
-        const url = document.getElementById('in-script-url').value;
-        if (!url) return alert("Please enter your Google Script URL.");
-        const btn = document.getElementById('btn-cloud');
-        btn.disabled = true; btn.innerText = "UPLOADING...";
+        const rcptNo = document.getElementById('in-rcpt-no').value;
         try {
+            if (!directoryHandle) {
+                alert("Select the 'RECEIPT ARCHIVE' folder on your device.");
+                directoryHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+            }
             const canvas = await html2canvas(document.querySelector("#receipt-area"), { scale: 3 });
-            const base64 = canvas.toDataURL('image/png').split(',')[1];
-            await fetch(url, { method: "POST", mode: "no-cors", body: JSON.stringify({ image: base64, name: `Rcpt_${document.getElementById('in-rcpt-no').value}.png` })});
-            alert("Success! Receipt saved to Google Drive.");
+            const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
+            const fileHandle = await directoryHandle.getFileHandle(`Receipt_${rcptNo}.png`, { create: true });
+            const writable = await fileHandle.createWritable();
+            await writable.write(blob);
+            await writable.close();
             incrementCounter();
-        } catch (e) { alert("Upload error. Check connection or URL."); }
-        btn.disabled = false; btn.innerText = "CLOUD SAVE";
+        } catch (err) { alert("Use Chrome/Edge and grant folder access."); }
     }
 
     function resetCounter() { document.getElementById('in-rcpt-no').value = 1; saveData(); updateReceipt(); }
