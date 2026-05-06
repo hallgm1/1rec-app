@@ -25,13 +25,23 @@
         .btn-save { background: #e67e22; }
         .btn-reset { background: #95a5a6; grid-column: span 2; margin-top: 5px; padding: 6px; font-size: 10px; }
 
-        /* 58mm POS RECEIPT STYLING - MATCHES PHYSICAL RECEIPT PHOTO */
+        /* --- Share Interface Styling --- */
+        .share-section { margin-top: 15px; padding-top: 10px; border-top: 2px solid #eee; }
+        .share-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; margin-top: 8px; }
+        .btn-sms { background: #9b59b6; }
+        .btn-wa { background: #25D366; }
+        .btn-fb { background: #0084FF; }
+
+        /* 58mm POS RECEIPT STYLING */
         #receipt-area { 
             width: 219px; 
-            background: white; padding: 25px 12px; color: #000;
+            background: white; 
+            /* INCREASED LENGTH: Padding bottom increased from 25px to approx 150px (approx 1/4 boost) */
+            padding: 25px 12px 150px 12px; 
+            color: #000;
             font-family: 'Courier New', Courier, monospace; 
             font-size: 11px; line-height: 1.4; word-wrap: break-word;
-            min-height: 580px; /* Ensures professional long look */
+            min-height: 725px; /* Increased from 580px to reflect 1/4 measure increase */
             display: flex; flex-direction: column;
         }
         .center { text-align: center; }
@@ -43,7 +53,7 @@
         #qrcode img { width: 115px !important; height: 115px !important; }
 
         @media print { 
-            .form-container { display: none !important; } 
+            .form-container, .share-section { display: none !important; } 
             body { background: white; padding: 0; } 
             #receipt-area { width: 58mm; padding: 5mm 2mm; margin: 0; border: none; }
         }
@@ -53,8 +63,8 @@
 
 <div class="form-container">
     <h3>Business Settings</h3>
-    <input type="text" id="in-biz-name" oninput="saveData()" placeholder="METRO AGRO MACHINERY & SPARES LTD">
-    <input type="text" id="in-biz-addr" oninput="saveData()" placeholder="P O BOX 79790 MOROGORO">
+    <input type="text" id="in-biz-name" oninput="saveData()" placeholder="BUSINESS NAME">
+    <input type="text" id="in-biz-addr" oninput="saveData()" placeholder="ADDRESS">
     <div class="grid">
         <input type="text" id="in-biz-tel" oninput="saveData()" placeholder="TEL">
         <input type="text" id="in-biz-street" oninput="saveData()" placeholder="STREET">
@@ -89,6 +99,16 @@
         <button class="btn-print" onclick="handlePrint()">PRINT</button>
         <button class="btn-save" onclick="saveToArchive()">SAVE TO FOLDER</button>
         <button class="btn-reset" onclick="resetCounter()">RESET NO.</button>
+    </div>
+
+    <div class="share-section">
+        <label>Share to Customer (Hidden from Print)</label>
+        <input type="tel" id="share-phone" placeholder="Recipient Phone (e.g. 0783...)">
+        <div class="share-grid">
+            <button class="btn btn-sms" onclick="shareReceipt('sms')">SMS</button>
+            <button class="btn btn-wa" onclick="shareReceipt('wa')">WhatsApp</button>
+            <button class="btn btn-fb" onclick="shareReceipt('fb')">Messenger</button>
+        </div>
     </div>
 </div>
 
@@ -179,19 +199,19 @@
             if(el) el.innerText = val;
         };
 
-        setDisp('biz-name', getVal('biz-name').toUpperCase() || "BUSINESS NAME");
-        setDisp('biz-addr', getVal('biz-addr').toUpperCase());
+        setDisp('biz-name', (getVal('biz-name') || "").toUpperCase());
+        setDisp('biz-addr', (getVal('biz-addr') || "").toUpperCase());
         setDisp('biz-tel', getVal('biz-tel'));
-        setDisp('biz-street', getVal('biz-street').toUpperCase());
+        setDisp('biz-street', (getVal('biz-street') || "").toUpperCase());
         setDisp('biz-tin', getVal('biz-tin'));
         setDisp('biz-vrn', getVal('biz-vrn'));
         setDisp('sn', getVal('sn'));
-        setDisp('tax-office', getVal('tax-office').toUpperCase());
+        setDisp('tax-office', (getVal('tax-office') || "").toUpperCase());
         setDisp('rcpt-no', getVal('rcpt-no'));
-        setDisp('cust-name', getVal('cust-name').toUpperCase());
+        setDisp('cust-name', (getVal('cust-name') || "").toUpperCase());
         setDisp('id-type', document.getElementById('in-id-type').value);
         setDisp('cust-id', getVal('cust-id'));
-        setDisp('item', getVal('item').toUpperCase());
+        setDisp('item', (getVal('item') || "").toUpperCase());
 
         let total = parseFloat(getVal('price')) || 0;
         let excl = Math.round(total / 1.18);
@@ -206,10 +226,34 @@
         setDisp('date', now.toLocaleDateString('en-GB').replace(/\//g, '-'));
         setDisp('time', now.toLocaleTimeString('en-GB'));
         
-        let vCode = "479B0" + getVal('rcpt-no');
+        let vCode = "479B0" + (getVal('rcpt-no') || "0");
         setDisp('code', vCode);
         qrcode.clear();
         qrcode.makeCode("https://verify.tra.go.tz/" + vCode);
+    }
+
+    /* Multi-Platform Share Logic */
+    function shareReceipt(platform) {
+        updateReceipt();
+        const phone = document.getElementById('share-phone').value;
+        const biz = document.getElementById('in-biz-name').value;
+        const rcpt = document.getElementById('in-rcpt-no').value;
+        const total = document.getElementById('in-price').value;
+        const item = document.getElementById('in-item').value;
+        const date = document.getElementById('disp-date').innerText;
+
+        const message = `LEGAL RECEIPT\nBiz: ${biz}\nReceipt No: ${rcpt}\nItem: ${item}\nAmount: TZS ${total}\nDate: ${date}\nVerify: https://verify.tra.go.tz/479B0${rcpt}`;
+        const encoded = encodeURIComponent(message);
+
+        if (platform === 'sms') {
+            if(!phone) { alert("Enter phone number first."); return; }
+            window.location.href = `sms:${phone}?body=${encoded}`;
+        } else if (platform === 'wa') {
+            const waUrl = phone ? `https://wa.me/${phone}?text=${encoded}` : `whatsapp://send?text=${encoded}`;
+            window.open(waUrl, '_blank');
+        } else if (platform === 'fb') {
+            window.open(`fb-messenger://share/?link=${encoded}`, '_blank');
+        }
     }
 
     async function saveToArchive() {
@@ -217,7 +261,7 @@
         const rcptNo = document.getElementById('in-rcpt-no').value;
         try {
             if (!directoryHandle) {
-                alert("Select the 'RECEIPT ARCHIVE' folder on your device.");
+                alert("Select the 'RECEIPT ARCHIVE' folder.");
                 directoryHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
             }
             const canvas = await html2canvas(document.querySelector("#receipt-area"), { scale: 3 });
@@ -227,7 +271,7 @@
             await writable.write(blob);
             await writable.close();
             incrementCounter();
-        } catch (err) { alert("Use Chrome/Edge and grant folder access."); }
+        } catch (err) { alert("Grant folder access (Chrome/Edge recommended)."); }
     }
 
     function resetCounter() { document.getElementById('in-rcpt-no').value = 1; saveData(); updateReceipt(); }
