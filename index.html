@@ -3,302 +3,101 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TRA POS 58mm - Local Archive</title>
+    <title>Professional POS - P58E Service</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
-        body { background: #2c3e50; margin: 0; padding: 10px; font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; align-items: center; }
+        /* Modern UI and Print Optimizations */
+        body { background: #f4f7f6; margin: 0; padding: 10px; font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; align-items: center; }
         .form-container { 
-            background: #fff; padding: 15px; width: 100%; max-width: 400px; 
-            margin-bottom: 20px; border-radius: 8px; box-sizing: border-box;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            background: #fff; padding: 20px; width: 100%; max-width: 400px; 
+            margin-bottom: 20px; border-radius: 12px; box-sizing: border-box;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
         }
-        h3 { margin: 10px 0; font-size: 14px; color: #34495e; border-bottom: 1px solid #eee; padding-bottom: 5px; }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        label { font-size: 10px; font-weight: bold; color: #7f8c8d; margin-top: 8px; display: block; text-transform: uppercase; }
-        input, select { width: 100%; padding: 8px; margin-top: 4px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; box-sizing: border-box; }
-        
-        .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 15px; }
-        button { padding: 12px; font-weight: bold; border: none; border-radius: 4px; cursor: pointer; color: white; font-size: 12px; transition: 0.3s; }
-        .btn-update { background: #3498db; grid-column: span 2; }
-        .btn-print { background: #27ae60; }
-        .btn-save { background: #e67e22; }
-        .btn-reset { background: #95a5a6; grid-column: span 2; margin-top: 5px; padding: 6px; font-size: 10px; }
-
-        /* Share Section Styling */
-        .share-section { margin-top: 15px; padding-top: 10px; border-top: 2px solid #eee; }
-        .share-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
-        .btn-jpeg { background: #607d8b; }
+        .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
+        button { padding: 14px; font-weight: bold; border: none; border-radius: 6px; cursor: pointer; color: white; transition: 0.2s; }
+        .btn-print { background: #2ecc71; grid-column: span 2; font-size: 16px; }
+        .share-section { margin-top: 20px; border-top: 1px solid #eee; padding-top: 15px; width: 100%; }
+        .share-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+        .btn-share { background: #3498db; }
         .btn-pdf { background: #e74c3c; }
-        .btn-text { background: #9b59b6; }
 
-        /* 58mm POS RECEIPT STYLING */
+        /* P58E Physical Dimensions (58mm) */
         #receipt-area { 
-            width: 219px; 
-            background: white; padding: 25px 12px 60px 12px; color: #000;
-            font-family: 'Courier New', Courier, monospace; 
-            font-size: 11px; line-height: 1.4; word-wrap: break-word;
-            min-height: 600px;
-            display: flex; flex-direction: column;
+            width: 58mm; background: white; padding: 10mm 4mm 20mm 4mm; color: #000;
+            font-family: 'Courier New', Courier, monospace; font-size: 12px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
         }
         .center { text-align: center; }
-        .bold { font-weight: bold; }
-        .dashed-line { border-bottom: 1px dashed #000; margin: 12px 0; }
-        .item-row { display: flex; justify-content: space-between; margin: 4px 0; }
-        .space-v { margin: 8px 0; }
-        #qrcode { display: flex; justify-content: center; margin: 15px 0; }
-        #qrcode img { width: 115px !important; height: 115px !important; }
+        .dashed { border-bottom: 1px dashed #000; margin: 10px 0; }
 
         @media print { 
             .form-container, .share-section { display: none !important; } 
             body { background: white; padding: 0; } 
-            #receipt-area { width: 58mm; padding: 5mm 2mm; margin: 0; border: none; }
+            #receipt-area { box-shadow: none; width: 58mm; padding: 0; margin: 0; }
         }
     </style>
 </head>
 <body>
 
 <div class="form-container">
-    <h3>Business Settings</h3>
-    <input type="text" id="in-biz-name" oninput="saveData()" placeholder="BUSINESS NAME">
-    <input type="text" id="in-biz-addr" oninput="saveData()" placeholder="ADDRESS">
-    <div class="grid">
-        <input type="text" id="in-biz-tel" oninput="saveData()" placeholder="TEL">
-        <input type="text" id="in-biz-street" oninput="saveData()" placeholder="STREET">
-    </div>
-    <div class="grid">
-        <input type="text" id="in-biz-tin" oninput="saveData()" placeholder="TIN">
-        <input type="text" id="in-biz-vrn" oninput="saveData()" placeholder="VRN">
-    </div>
-    <div class="grid">
-        <input type="text" id="in-sn" oninput="saveData()" placeholder="SERIAL NUMBER">
-        <input type="text" id="in-tax-office" oninput="saveData()" placeholder="TAX OFFICE">
-    </div>
-
-    <h3>Customer & Sales</h3>
-    <input type="text" id="in-cust-name" placeholder="CUSTOMER NAME">
-    <div class="grid">
-        <select id="in-id-type" onchange="updateReceipt()">
-            <option value="BUYER'S TIN">BUYER'S TIN</option>
-            <option value="ID NUMBER">ID NUMBER</option>
-            <option value="PASSPORT">PASSPORT</option>
-        </select>
-        <input type="text" id="in-cust-id" placeholder="ID VALUE">
-    </div>
-    <div class="grid">
-        <input type="text" id="in-item" placeholder="ITEM">
-        <input type="number" id="in-price" placeholder="PRICE (TZS)">
-    </div>
-    <input type="number" id="in-rcpt-no" oninput="saveData()" placeholder="RECEIPT NO">
+    <h3 style="margin: 0 0 15px 0;">P58E Receipt Generator</h3>
+    <input type="text" id="in-biz" placeholder="BUSINESS NAME" style="width:100%; padding:10px; margin-bottom:10px;">
+    <input type="number" id="in-price" placeholder="AMOUNT (TZS)" style="width:100%; padding:10px;">
     
     <div class="btn-group">
-        <button class="btn-update" onclick="updateReceipt()">PREVIEW</button>
-        <button class="btn-print" onclick="handlePrint()">PRINT</button>
-        <button class="btn-save" onclick="saveToArchive()">SAVE TO FOLDER</button>
-        <button class="btn-reset" onclick="resetCounter()">RESET NO.</button>
+        <button class="btn-print" onclick="window.print()">PRINT TO P58E</button>
     </div>
 
     <div class="share-section">
-        <label>Share Digital Copy (Hidden from Print)</label>
+        <label style="font-size:12px; color:#666;">DIGITAL SHARING (NO WATERMARK)</label>
         <div class="share-grid">
-            <button class="btn btn-jpeg" onclick="shareFile('jpeg')">JPEG</button>
-            <button class="btn btn-pdf" onclick="shareFile('pdf')">PDF</button>
-            <button class="btn btn-text" onclick="shareTextOnly()">TEXT</button>
+            <button class="btn btn-share" onclick="shareAsImage()">SHARE JPG</button>
+            <button class="btn btn-pdf" onclick="shareAsPDF()">SHARE PDF</button>
         </div>
     </div>
 </div>
 
 <div id="receipt-area">
-    <div class="center bold">*** START OF LEGAL RECEIPT ***</div>
-    
-    <div class="center space-v">
-        <span id="disp-biz-name" class="bold"></span><br>
-        <span id="disp-biz-addr"></span><br>
-        TEL <span id="disp-biz-tel"></span><br>
-        <span id="disp-biz-street"></span><br>
-        TANZANIA
+    <div class="center" style="font-weight:bold; font-size:14px;" id="disp-biz">BUSINESS NAME</div>
+    <div class="dashed"></div>
+    <div style="display:flex; justify-content:space-between;">
+        <span>TOTAL:</span><span id="disp-total">0.00</span>
     </div>
-
-    <div class="center">
-        TIN: <span id="disp-biz-tin"></span> | VRN: <span id="disp-biz-vrn"></span><br>
-        S/N: <span id="disp-sn"></span><br>
-        TAX OFFICE: <span id="disp-tax-office"></span>
-    </div>
-
-    <div class="dashed-line"></div>
-    
-    <div class="space-v">
-        CUSTOMER NAME: <span id="disp-cust-name"></span><br>
-        ID TYPE: <span id="disp-id-type"></span><br>
-        CUSTOMER ID: <span id="disp-cust-id"></span>
-    </div>
-
-    <div class="dashed-line"></div>
-
-    <div class="item-row">
-        <span>RECEIPT NUMBER</span><span id="disp-rcpt-no" class="bold"></span>
-    </div>
-    <div class="item-row">
-        <span id="disp-date"></span><span id="disp-time"></span>
-    </div>
-
-    <div class="dashed-line"></div>
-
-    <div class="item-row bold" style="margin-top: 10px;">
-        <span id="disp-item"></span>
-        <span><span id="disp-total-row"></span> E</span>
-    </div>
-
-    <div style="margin-top: 15px;">
-        <div class="item-row"><span>TOTAL EXCL. OF TAX</span><span id="disp-excl"></span></div>
-        <div class="item-row"><span>TOTAL TAX (18%)</span><span id="disp-vat"></span></div>
-    </div>
-
-    <div class="center bold" style="font-size: 22px; margin: 25px 0;" id="disp-total-big"></div>
-
-    <div class="dashed-line"></div>
-
-    <div class="center">RECEIPT VERIFICATION CODE<br><span class="bold" id="disp-code" style="font-size: 12px;"></span></div>
-    
-    <div id="qrcode"></div>
-
-    <div class="center bold" style="margin-top: auto;">*** END OF LEGAL RECEIPT ***</div>
-    
-    <div class="center" style="font-size: 9px; margin-top: 10px;">
-        Changamoto kwenye risiti piga<br>bure TRA 0800750254 /0800754255
-    </div>
+    <div class="dashed"></div>
+    <div id="qrcode" style="display:flex; justify-content:center; margin:10px 0;"></div>
+    <div class="center" style="font-size:10px;">THANK YOU FOR YOUR BUSINESS</div>
 </div>
 
 <script>
-    var qrcode = new QRCode(document.getElementById("qrcode"), { width: 115, height: 115 });
-    let directoryHandle = null;
-
-    function saveData() {
-        const fields = ['biz-name', 'biz-addr', 'biz-tel', 'biz-street', 'biz-tin', 'biz-vrn', 'sn', 'tax-office', 'rcpt-no'];
-        const data = {};
-        fields.forEach(f => {
-            const el = document.getElementById('in-' + f);
-            if(el) data[f] = el.value;
-        });
-        localStorage.setItem('tra_pos_local_v1', JSON.stringify(data));
-    }
-
-    function loadData() {
-        const saved = JSON.parse(localStorage.getItem('tra_pos_local_v1') || "{}");
-        for (let key in saved) { if(document.getElementById('in-' + key)) document.getElementById('in-' + key).value = saved[key]; }
-    }
-
-    function updateReceipt() {
-        const getVal = (id) => document.getElementById('in-' + id).value;
-        const setDisp = (id, val) => {
-            const el = document.getElementById('disp-' + id);
-            if(el) el.innerText = val;
-        };
-
-        setDisp('biz-name', (getVal('biz-name') || "BUSINESS NAME").toUpperCase());
-        setDisp('biz-addr', (getVal('biz-addr') || "").toUpperCase());
-        setDisp('biz-tel', getVal('biz-tel'));
-        setDisp('biz-street', (getVal('biz-street') || "").toUpperCase());
-        setDisp('biz-tin', getVal('biz-tin'));
-        setDisp('biz-vrn', getVal('biz-vrn'));
-        setDisp('sn', getVal('sn'));
-        setDisp('tax-office', (getVal('tax-office') || "").toUpperCase());
-        setDisp('rcpt-no', getVal('rcpt-no'));
-        setDisp('cust-name', (getVal('cust-name') || "").toUpperCase());
-        setDisp('id-type', document.getElementById('in-id-type').value);
-        setDisp('cust-id', getVal('cust-id'));
-        setDisp('item', (getVal('item') || "").toUpperCase());
-
-        let total = parseFloat(getVal('price')) || 0;
-        let excl = Math.round(total / 1.18);
-        let vat = Math.round(total - excl);
-
-        setDisp('total-row', total.toLocaleString());
-        setDisp('excl', excl.toLocaleString());
-        setDisp('vat', vat.toLocaleString());
-        setDisp('total-big', total.toLocaleString() + ".00");
-
-        let now = new Date();
-        setDisp('date', now.toLocaleDateString('en-GB').replace(/\//g, '-'));
-        setDisp('time', now.toLocaleTimeString('en-GB'));
-        
-        let vCode = "479B0" + (getVal('rcpt-no') || "0");
-        setDisp('code', vCode);
-        qrcode.clear();
-        qrcode.makeCode("https://verify.tra.go.tz/" + vCode);
-    }
-
-    async function shareFile(type) {
-        updateReceipt();
-        const area = document.querySelector("#receipt-area");
-        const canvas = await html2canvas(area, { scale: 3 });
-        const rcptNo = document.getElementById('in-rcpt-no').value;
-        const fileName = `Receipt_${rcptNo}`;
-
-        if (type === 'jpeg') {
-            canvas.toBlob(async (blob) => {
-                const file = new File([blob], `${fileName}.jpg`, { type: 'image/jpeg' });
-                shareViaWebAPI(file);
-            }, 'image/jpeg', 0.9);
-        } else if (type === 'pdf') {
-            const { jsPDF } = window.jspdf;
-            const imgData = canvas.toDataURL('image/jpeg', 1.0);
-            const pdf = new jsPDF({ unit: 'px', format: [219, 600] });
-            pdf.addImage(imgData, 'JPEG', 0, 0, 219, 600);
-            const pdfBlob = pdf.output('blob');
-            const file = new File([pdfBlob], `${fileName}.pdf`, { type: 'application/pdf' });
-            shareViaWebAPI(file);
-        }
-    }
-
-    async function shareViaWebAPI(file) {
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-            try {
-                await navigator.share({
-                    files: [file],
-                    title: 'Electronic Receipt',
-                    text: 'Hapa ni risiti yako ya kielektroniki.'
-                });
-            } catch (err) { console.error("Share failed", err); }
-        } else {
-            alert("Digital sharing is only supported on mobile devices/secure browsers.");
-        }
-    }
-
-    function shareTextOnly() {
-        const msg = `RISITI: ${document.getElementById('in-biz-name').value}\nNo: ${document.getElementById('in-rcpt-no').value}\nTotal: TZS ${document.getElementById('in-price').value}\nVerify: https://verify.tra.go.tz/${document.getElementById('disp-code').innerText}`;
-        window.location.href = `whatsapp://send?text=${encodeURIComponent(msg)}`;
-    }
-
-    async function saveToArchive() {
-        updateReceipt();
-        const rcptNo = document.getElementById('in-rcpt-no').value;
-        try {
-            if (!directoryHandle) {
-                alert("Select the 'RECEIPT ARCHIVE' folder.");
-                directoryHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+    // Digital Sharing Logic (Bypasses RawBT app entirely)
+    async function shareAsImage() {
+        const canvas = await html2canvas(document.querySelector("#receipt-area"));
+        canvas.toBlob(async (blob) => {
+            const file = new File([blob], "receipt.jpg", { type: "image/jpeg" });
+            if (navigator.share) {
+                await navigator.share({ files: [file], title: 'Receipt' });
             }
-            const canvas = await html2canvas(document.querySelector("#receipt-area"), { scale: 3 });
-            const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
-            const fileHandle = await directoryHandle.getFileHandle(`Receipt_${rcptNo}.png`, { create: true });
-            const writable = await fileHandle.createWritable();
-            await writable.write(blob);
-            await writable.close();
-            incrementCounter();
-        } catch (err) { alert("Use Chrome/Edge and grant folder access."); }
+        });
     }
 
-    function resetCounter() { document.getElementById('in-rcpt-no').value = 1; saveData(); updateReceipt(); }
-    function incrementCounter() { 
-        const el = document.getElementById('in-rcpt-no');
-        el.value = parseInt(el.value || 0) + 1; 
-        saveData(); 
-        updateReceipt(); 
+    async function shareAsPDF() {
+        const canvas = await html2canvas(document.querySelector("#receipt-area"));
+        const imgData = canvas.toDataURL('image/png');
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF({ unit: 'mm', format: [58, 150] });
+        pdf.addImage(imgData, 'PNG', 0, 0, 58, 150);
+        const pdfBlob = pdf.output('blob');
+        const file = new File([pdfBlob], "receipt.pdf", { type: "application/pdf" });
+        if (navigator.share) {
+            await navigator.share({ files: [file], title: 'Receipt PDF' });
+        }
     }
-    function handlePrint() { window.print(); incrementCounter(); }
 
-    window.onload = () => { loadData(); updateReceipt(); };
+    document.getElementById('in-biz').oninput = (e) => document.getElementById('disp-biz').innerText = e.target.value.toUpperCase();
+    document.getElementById('in-price').oninput = (e) => document.getElementById('disp-total').innerText = "Tsh " + e.target.value;
 </script>
+
 </body>
 </html>
