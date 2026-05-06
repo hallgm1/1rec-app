@@ -6,6 +6,7 @@
     <title>TRA POS 58mm - Local Archive</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         body { background: #2c3e50; margin: 0; padding: 10px; font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; align-items: center; }
         .form-container { 
@@ -25,23 +26,20 @@
         .btn-save { background: #e67e22; }
         .btn-reset { background: #95a5a6; grid-column: span 2; margin-top: 5px; padding: 6px; font-size: 10px; }
 
-        /* --- Share Interface Styling --- */
+        /* Share Section Styling */
         .share-section { margin-top: 15px; padding-top: 10px; border-top: 2px solid #eee; }
-        .share-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; margin-top: 8px; }
-        .btn-sms { background: #9b59b6; }
-        .btn-wa { background: #25D366; }
-        .btn-fb { background: #0084FF; }
+        .share-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+        .btn-jpeg { background: #607d8b; }
+        .btn-pdf { background: #e74c3c; }
+        .btn-text { background: #9b59b6; }
 
         /* 58mm POS RECEIPT STYLING */
         #receipt-area { 
             width: 219px; 
-            background: white; 
-            /* INCREASED LENGTH: Padding bottom increased from 25px to approx 150px (approx 1/4 boost) */
-            padding: 25px 12px 150px 12px; 
-            color: #000;
+            background: white; padding: 25px 12px 60px 12px; color: #000;
             font-family: 'Courier New', Courier, monospace; 
             font-size: 11px; line-height: 1.4; word-wrap: break-word;
-            min-height: 725px; /* Increased from 580px to reflect 1/4 measure increase */
+            min-height: 600px;
             display: flex; flex-direction: column;
         }
         .center { text-align: center; }
@@ -102,12 +100,11 @@
     </div>
 
     <div class="share-section">
-        <label>Share to Customer (Hidden from Print)</label>
-        <input type="tel" id="share-phone" placeholder="Recipient Phone (e.g. 0783...)">
+        <label>Share Digital Copy (Hidden from Print)</label>
         <div class="share-grid">
-            <button class="btn btn-sms" onclick="shareReceipt('sms')">SMS</button>
-            <button class="btn btn-wa" onclick="shareReceipt('wa')">WhatsApp</button>
-            <button class="btn btn-fb" onclick="shareReceipt('fb')">Messenger</button>
+            <button class="btn btn-jpeg" onclick="shareFile('jpeg')">JPEG</button>
+            <button class="btn btn-pdf" onclick="shareFile('pdf')">PDF</button>
+            <button class="btn btn-text" onclick="shareTextOnly()">TEXT</button>
         </div>
     </div>
 </div>
@@ -199,7 +196,7 @@
             if(el) el.innerText = val;
         };
 
-        setDisp('biz-name', (getVal('biz-name') || "").toUpperCase());
+        setDisp('biz-name', (getVal('biz-name') || "BUSINESS NAME").toUpperCase());
         setDisp('biz-addr', (getVal('biz-addr') || "").toUpperCase());
         setDisp('biz-tel', getVal('biz-tel'));
         setDisp('biz-street', (getVal('biz-street') || "").toUpperCase());
@@ -232,28 +229,46 @@
         qrcode.makeCode("https://verify.tra.go.tz/" + vCode);
     }
 
-    /* Multi-Platform Share Logic */
-    function shareReceipt(platform) {
+    async function shareFile(type) {
         updateReceipt();
-        const phone = document.getElementById('share-phone').value;
-        const biz = document.getElementById('in-biz-name').value;
-        const rcpt = document.getElementById('in-rcpt-no').value;
-        const total = document.getElementById('in-price').value;
-        const item = document.getElementById('in-item').value;
-        const date = document.getElementById('disp-date').innerText;
+        const area = document.querySelector("#receipt-area");
+        const canvas = await html2canvas(area, { scale: 3 });
+        const rcptNo = document.getElementById('in-rcpt-no').value;
+        const fileName = `Receipt_${rcptNo}`;
 
-        const message = `LEGAL RECEIPT\nBiz: ${biz}\nReceipt No: ${rcpt}\nItem: ${item}\nAmount: TZS ${total}\nDate: ${date}\nVerify: https://verify.tra.go.tz/479B0${rcpt}`;
-        const encoded = encodeURIComponent(message);
-
-        if (platform === 'sms') {
-            if(!phone) { alert("Enter phone number first."); return; }
-            window.location.href = `sms:${phone}?body=${encoded}`;
-        } else if (platform === 'wa') {
-            const waUrl = phone ? `https://wa.me/${phone}?text=${encoded}` : `whatsapp://send?text=${encoded}`;
-            window.open(waUrl, '_blank');
-        } else if (platform === 'fb') {
-            window.open(`fb-messenger://share/?link=${encoded}`, '_blank');
+        if (type === 'jpeg') {
+            canvas.toBlob(async (blob) => {
+                const file = new File([blob], `${fileName}.jpg`, { type: 'image/jpeg' });
+                shareViaWebAPI(file);
+            }, 'image/jpeg', 0.9);
+        } else if (type === 'pdf') {
+            const { jsPDF } = window.jspdf;
+            const imgData = canvas.toDataURL('image/jpeg', 1.0);
+            const pdf = new jsPDF({ unit: 'px', format: [219, 600] });
+            pdf.addImage(imgData, 'JPEG', 0, 0, 219, 600);
+            const pdfBlob = pdf.output('blob');
+            const file = new File([pdfBlob], `${fileName}.pdf`, { type: 'application/pdf' });
+            shareViaWebAPI(file);
         }
+    }
+
+    async function shareViaWebAPI(file) {
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            try {
+                await navigator.share({
+                    files: [file],
+                    title: 'Electronic Receipt',
+                    text: 'Hapa ni risiti yako ya kielektroniki.'
+                });
+            } catch (err) { console.error("Share failed", err); }
+        } else {
+            alert("Digital sharing is only supported on mobile devices/secure browsers.");
+        }
+    }
+
+    function shareTextOnly() {
+        const msg = `RISITI: ${document.getElementById('in-biz-name').value}\nNo: ${document.getElementById('in-rcpt-no').value}\nTotal: TZS ${document.getElementById('in-price').value}\nVerify: https://verify.tra.go.tz/${document.getElementById('disp-code').innerText}`;
+        window.location.href = `whatsapp://send?text=${encodeURIComponent(msg)}`;
     }
 
     async function saveToArchive() {
@@ -271,7 +286,7 @@
             await writable.write(blob);
             await writable.close();
             incrementCounter();
-        } catch (err) { alert("Grant folder access (Chrome/Edge recommended)."); }
+        } catch (err) { alert("Use Chrome/Edge and grant folder access."); }
     }
 
     function resetCounter() { document.getElementById('in-rcpt-no').value = 1; saveData(); updateReceipt(); }
